@@ -1,0 +1,86 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/joho/godotenv"
+)
+
+type ToDo struct {
+	ID        int    `json:"id"`
+	BODY      string `json:"body"`
+	COMPLETED bool   `json:"completed"`
+}
+
+func main() {
+	fmt.Println("entered")
+	app := fiber.New()
+
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatal("Error loading .env")
+	}
+
+	PORT := os.Getenv("PORT")
+
+	todos := []ToDo{}
+
+	// Get all todos
+	app.Get("/api/todos", func(c fiber.Ctx) error {
+		return c.Status(200).JSON(fiber.Map{"msg": "Hello World", "todos": todos})
+	})
+
+	// Create a todo
+	app.Post("/api/todos", func(c fiber.Ctx) error {
+		todo := &ToDo{}
+
+		if err := c.Bind().Body(todo); err != nil {
+			return err
+		}
+
+		if todo.BODY == "" {
+			fmt.Println(todo)
+			return c.Status(400).JSON(fiber.Map{"error": "Body field is required"})
+		}
+
+		todo.ID = len(todos) + 1
+		todos = append(todos, *todo)
+
+		fmt.Println(todos)
+
+		return c.Status(201).JSON(todo)
+
+	})
+
+	// Update a todo
+	app.Patch("/api/todos/:id", func(c fiber.Ctx) error {
+		id := c.Params("id")
+
+		for i, todo := range todos {
+			if fmt.Sprint(todo.ID) == id {
+				todos[i].BODY += " updated"
+				return c.Status(200).JSON(todos[i])
+			}
+		}
+		return c.Status(404).JSON(fiber.Map{"error": "Todo not found"})
+	})
+
+	// Delete a todo
+	app.Delete("/api/todos/:id", func(c fiber.Ctx) error {
+		id := c.Params("id")
+		for i, todo := range todos {
+			if fmt.Sprint(todo.ID) == id {
+				todos = append(todos[:i], todos[i+1:]...)
+				return c.Status(200).JSON(fiber.Map{"success": "Todo at" + id + "Deleted successfully"})
+			}
+		}
+		return c.Status(404).JSON(fiber.Map{"error": "Todo not found"})
+	})
+
+	log.Fatal(app.Listen(":" + PORT))
+
+}
