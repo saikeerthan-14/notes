@@ -18,6 +18,7 @@ require (
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/gofiber/utils/v2 v2.0.0-beta.6 // indirect
 	github.com/gohugoio/hugo v0.129.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
