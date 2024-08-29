@@ -15,7 +15,7 @@ import (
 )
 
 type ToDo struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id"`
+	ID        primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	BODY      string             `json:"body"`
 	COMPLETED bool               `json:"completed"`
 }
@@ -46,7 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to Atlas")
+	fmt.Println("Connected to MongoDB Atlas")
 
 	collection = client.Database("golang_db").Collection("todos")
 
@@ -54,8 +54,8 @@ func main() {
 
 	app.Get("/api/todos", getTodos)
 	app.Post("/api/todos", createTodo)
-	// app.Patch("/api/todos/:id", updateTodo)
-	// app.Delete("/api/todos/:id", deleteTodo)
+	app.Patch("/api/todos/:id", updateTodo)
+	app.Delete("/api/todos/:id", deleteTodo)
 
 	port := os.Getenv("PORT")
 
@@ -108,7 +108,46 @@ func createTodo(c fiber.Ctx) error {
 
 	todo.ID = insertResult.InsertedID.(primitive.ObjectID)
 
+	return c.Status(201).JSON(todo)
+
 }
 
-// func updateTodo(c fiber.Ctx) error {}
-// func deleteTodos(c fiber.Ctx) error {}
+func updateTodo(c fiber.Ctx) error {
+	id := c.Params("id")
+	objectID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID is invalid"})
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"completed": true}}
+
+	_, err = collection.UpdateOne(context.Background(), filter, update)
+
+	if err != nil {
+		return err
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true})
+
+}
+
+func deleteTodo(c fiber.Ctx) error {
+	id := c.Params("id")
+	objectID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID is invalid"})
+	}
+
+	filter := bson.M{"_id": objectID}
+
+	_, err = collection.DeleteOne(context.Background(), filter)
+
+	if err != nil {
+		return err
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true})
+}
